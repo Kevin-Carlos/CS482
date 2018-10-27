@@ -1,0 +1,4 @@
+/mnt/c/Users/mrtk8/Google Drive/UNR/CS482/Spam/CMakeFiles/rebuild_cache.dir
+/mnt/c/Users/mrtk8/Google Drive/UNR/CS482/Spam/CMakeFiles/training.dir
+/mnt/c/Users/mrtk8/Google Drive/UNR/CS482/Spam/CMakeFiles/edit_cache.dir
+/mnt/c/Users/mrtk8/Google Drive/UNR/CS482/Spam/CMakeFiles/classify.dir
