@@ -14,14 +14,25 @@
 #include <iostream>
 #include <string>
 #include <unordered_map>
+#include <regex>
+#include <algorithm>
+#include <math.h>
+
+using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Function Prototypes
 ////////////////////////////////////////////////////////////////////////////////
-void readIntoMap( std::string , std::unordered_map< std::string , int > & );
-void naiveBayes( std::unordered_map< std::string , int > spamWords , 
-    std::unordered_map< std::string , int > hamWords );
+void readIntoMap( string , unordered_map< string , int > & );
 
+void calculatetotalMsg();
+
+void naiveBayes( unordered_map< string , int > spamWords , 
+    unordered_map< string , int > hamWords ,
+    string inputFile , string );
+
+void outputMessages( string ,
+    string outputFile );
 
 ////////////////////////////////////////////////////////////////////////////////
 // Global Struct
@@ -31,8 +42,15 @@ struct MsgInfo
     int hamWordCount,
         spamWordCount,
         hamMsgCount,
-        spamMsgCount;
-};
+        spamMsgCount,
+        totalNumMsg;
+} info;
+
+struct Probability
+{
+    int probabilityHam,
+        probabilitySpam;
+} probs;
 
 ////////////////////////////////////////////////////////////////////////////////
 /**
@@ -48,13 +66,18 @@ struct MsgInfo
 int main( int argc, char* argv[] )
 {
     //Variables
-   	std::string		inputFile,
+   	string		inputFile,
    			        spamInput,
 		            hamInput,
                     classifyFile;
 
-    std::unordered_map< std::string , int > spamWords;
-    std::unordered_map< std::string , int > hamWords;
+    unordered_map< string , int > spamWords;
+    unordered_map< string , int > hamWords;
+
+    /* for ( int i = 0; i < argc; i++ )
+    {
+        cout << "" << argc << ": " << argv[i] << "\n";
+    } */
 
 	//Statically set the above strings to their argv
 	inputFile = argv[2];
@@ -66,8 +89,11 @@ int main( int argc, char* argv[] )
     readIntoMap( spamInput , spamWords );
     readIntoMap( hamInput , hamWords );
 
-    //Work some Naive Bayes magic
-    naiveBayes( spamWords , hamWords );
+    calculatetotalMsg();
+
+    //Start some trainin'
+    naiveBayes( spamWords , hamWords , 
+        inputFile , classifyFile );
 
     return 0;
 }
@@ -83,17 +109,16 @@ int main( int argc, char* argv[] )
  * 
 //////////////////////////////////////////////////////////////////////////////*/
 void readIntoMap( 
-    std::string inputProbabilityFile , 
-    std::unordered_map< std::string , int > &myMap )
+    string inputProbabilityFile , 
+    unordered_map< string , int > &myMap )
 {
     //Variables
-    std::ifstream   fin;
-    std::string     word,
+    ifstream        fin;
+    string          word,
                     temp;
     int             value,
                     wordCount;
     bool            fileType;
-    MsgInfo       info;
 
     fileType = inputProbabilityFile.find("spam"); //True for spam
                                                     //False for ham
@@ -103,20 +128,20 @@ void readIntoMap(
     {
         if ( fileType )
         {
-            std::getline( fin , temp , '\n' );
-            info.spamWordCount = std::stoi( temp );
-            std::getline( fin , temp , '\n' );
-            info.spamMsgCount = std::stoi( temp );
+            getline( fin , temp , '\n' );
+            info.spamWordCount = stoi( temp );
+            getline( fin , temp , '\n' );
+            info.spamMsgCount = stoi( temp );
         }
         else if ( !fileType )
         {
-            std::getline( fin , temp , '\n' );
-            info.hamWordCount = std::stoi( temp );
-            std::getline( fin , temp , '\n' );
-            info.hamMsgCount = std::stoi( temp );
+            getline( fin , temp , '\n' );
+            info.hamWordCount = stoi( temp );
+            getline( fin , temp , '\n' );
+            info.hamMsgCount = stoi( temp );
         }
         else
-            std::cout << "Error reading wordCount and emailCount...\n";
+            cout << "Error reading wordCount and emailCount...\n";
 
         while ( !fin.eof() )
         {
@@ -126,38 +151,158 @@ void readIntoMap(
              * word #
              * 
              * */
-            std::getline( fin , word , ' ' );
-            std::getline( fin , temp , '\n' );
+            getline( fin , word , ' ' );
+            getline( fin , temp , '\n' );
 
             //Convert temp into an integer
-            value = std::stoi( temp );
+            value = stoi( temp );
 
             //Insert into map
-            myMap.insert( std::pair< std::string , int > ( word , value ));
+            myMap.insert( pair< string , int > ( word , value ));
         }
     }
     else
-        std::cout << "Error opening input probability file...\n";
+        cout << "Error opening input probability file...\n";
 }
 
-void naiveBayes( std::unordered_map< std::string , int > spamWords , 
-    std::unordered_map< std::string , int > hamWords )
+void calculatetotalMsg()
 {
-    int         totalNumMsg,
-
-                probabilitySpam,
-                probabilityHam;
-
-    MsgInfo   info;
-
-    totalNumMsg = info.hamMsgCount + info.spamMsgCount;
+    info.totalNumMsg = info.hamMsgCount + info.spamMsgCount;
 
     //P(Spam) and P(Ham)
-    probabilityHam = info.hamMsgCount / totalNumMsg;
-    probabilitySpam = info.spamMsgCount / totalNumMsg;
+    probs.probabilityHam = info.hamMsgCount / info.totalNumMsg;
+    probs.probabilitySpam = info.spamMsgCount / info.totalNumMsg;
+}
 
-    //P(word i|spam) = #word_i_occurrence_in_all_spams/#all_words_in_spams
-    //P(word i|ham) = #word_i_occurrence_in_all_spams/#all_words_in_hams
+void naiveBayes( unordered_map< string , int > spamWords , 
+    unordered_map< string , int > hamWords ,
+    string inputFile , string outFile )
+{
+    //Variables
+    ifstream       fin;
 
+    regex regExpr( "([^.,<>/\()-_@#$%^&*=+?!:;'\" ]+)" );
+    smatch match;
 
+    string              temp,
+                        message,
+                        messageType,
+                        word;
+
+    const string        HAM = "ham",
+                        SPAM = "spam";
+
+    long double         wordProbHam,
+                        wordProbSpam;
+    long double         msgHamProb,
+                        msgSpamProb;
+    int                 spamValue = 0,
+                        hamValue = 0;
+
+    unordered_map<string , int>::iterator it;
+
+    int lines = 0;
+
+    fin.open( inputFile );
+    if ( fin.is_open() )
+    {
+        while ( !fin.eof() ) 
+        {
+            lines++;
+            getline( fin , messageType , ',' );
+
+            getline( fin , temp , '\n' );
+            message = temp.substr( 0 , temp.find(",,,") ); 
+
+            //cout << "Type: " << messageType << " ";
+            //cout << "Message: " << message << endl;
+            //cout << "Line #: " << lines << endl;
+
+            //Classify some stoof
+            //Set the message to all lowercase
+            transform( 
+                message.begin() , 
+                message.end() , 
+                message.begin() , 
+                ::tolower );  
+
+            regex_iterator<string::iterator> rit 
+                    ( message.begin(), message.end(), regExpr );
+            regex_iterator<string::iterator> rend;
+
+            while ( rit != rend )
+            {
+                /**
+                 * This starts off with a 50/50 chance of probability
+                */
+                msgHamProb = 0.5;
+                msgSpamProb = 0.5;
+
+                word = rit->str(); //Obtain the word
+
+                //First does the word exist in one of the maps at all?
+                if ( spamWords.count( word ) != 0 )
+	            {
+                    it = spamWords.find( word );
+
+                    /**
+                     * Use this as a threshold to not use words that only occur
+                     * once.
+                    */
+                    if ( it->second == 1 ) 
+                        wordProbSpam = 1;
+                    else
+                        wordProbSpam = it->second / ( info.spamWordCount - 1 );
+	            }
+                else
+                    wordProbSpam = 1;
+    
+	            if ( hamWords.count( word ) != 0 )
+	            {
+                    it = hamWords.find( word ); 
+
+                    if ( it->second == 1 )
+                        wordProbHam = 1;
+                    else
+                        wordProbHam = it->second / ( info.hamWordCount - 1);
+	            }
+                else
+                    wordProbHam = 1;
+
+                msgSpamProb *= wordProbSpam;
+                msgHamProb *= wordProbHam;
+
+                ++rit;
+            } 
+
+            if ( log(msgHamProb) > log(msgSpamProb) )
+            {
+                outputMessages( HAM , outFile );
+            }
+            else if ( log(msgSpamProb) > log(msgHamProb) )
+            {
+                outputMessages( SPAM , outFile );
+            }
+            else
+                outputMessages( messageType , outFile );
+
+            if ( lines == 1672 ) //Jank, needs fixing because EOF is bad
+                exit(1);
+        }
+    }
+    fin.close();
+}
+
+void outputMessages( string type , string classifyFile )
+{
+    //Variables
+    ofstream   fout;
+
+    fout.open( classifyFile , ios::app );
+    if ( fout.is_open() )
+    {
+        fout << type << endl;
+    }
+
+    fout.close();
 }
