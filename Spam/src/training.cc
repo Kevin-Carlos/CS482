@@ -18,24 +18,26 @@
 #include <unordered_map>
 #include <algorithm>
 
+using namespace std;
+
 ////////////////////////////////////////////////////////////////////////////////
 // Function Prototypes
 ////////////////////////////////////////////////////////////////////////////////
-void parseFile( std::string , std::string , std::string );
+void parseFile( string , string , string );
 
-void findWord ( std::string , std::string ,
-	std::unordered_map<std::string , int> & ,
-	std::unordered_map<std::string , int> & ,
+void findWord ( string , string ,
+	unordered_map<string , int> & ,
+	unordered_map<string , int> & ,
 	int & , int & );
 
 void outputProbabilityFile( 
-	std::string , 
-	std::unordered_map<std::string , int> ,
+	string , 
+	unordered_map<string , int> ,
 	int , int );
 
 void insertIntoMap( 
-	std::string , 
-	std::unordered_map<std::string , int> & );
+	string , 
+	unordered_map<string , int> & );
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -52,9 +54,9 @@ void insertIntoMap(
 int main ( int argc, char* argv[] )
 {
    	//Variables
-   	std::string		inputFile;
-   	std::string		spamOutput;
-	std::string		hamOutput;
+   	string		inputFile;
+   	string		spamOutput;
+	string		hamOutput;
 
 	//Statically set the above strings to their argv
 	inputFile = argv[2];
@@ -86,34 +88,34 @@ int main ( int argc, char* argv[] )
  * 
 //////////////////////////////////////////////////////////////////////////////*/
 void parseFile( 
-	std::string inputFile , 
-	std::string spamOutput , 
-	std::string hamOutput )
+	string inputFile , 
+	string spamOutput , 
+	string hamOutput )
 {
 	//Variables
-	std::ifstream 							fin;
-	std::string								temp;
-	std::string 							messageType;
-	std::string								message;
+	ifstream 							fin;
+	string								temp;
+	string 							messageType;
+	string								message;
 
 	int										hamWordCount = 0,
 											spamWordCount = 0,
 											hamEmailCount = 0,
 											spamEmailCount = 0;
 
-	std::unordered_map<std::string , int> 	hamWords;
-	std::unordered_map<std::string , int> 	spamWords;
+	unordered_map<string , int> 	hamWords;
+	unordered_map<string , int> 	spamWords;
 	
 
 	fin.open ( inputFile );
 	if ( fin.is_open() )
 	{
 		//Read the first line to begin getting to the messages
-		std::getline( fin , temp , '\n' );
+		getline( fin , temp , '\n' );
 
 		while ( !fin.eof() )
 		{
-			std::getline( fin , messageType , ',');
+			getline( fin , messageType , ',');
 
 			//Janky but need the # of emails
 			if ( messageType == "ham" )
@@ -122,11 +124,11 @@ void parseFile(
 				spamEmailCount++;
 
 			//Grab the rest of the line
-			std::getline( fin , temp , '\n' );
+			getline( fin , temp , '\n' );
 			message = temp.substr( 0 , temp.find(",,,") ); 
 			
 			//Set the message to all lowercase
-			std::transform( 
+			transform( 
 				message.begin() , 
 				message.end() , 
 				message.begin() , 
@@ -148,7 +150,7 @@ void parseFile(
 			spamWordCount , spamEmailCount );
 	}
 	else
-		std::cout << "Error opening the input file...\n";
+		cout << "Error opening the input file...\n";
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -161,10 +163,10 @@ void parseFile(
  * 
 //////////////////////////////////////////////////////////////////////////////*/
 void findWord ( 
-	std::string messageType , 
-	std::string message , 
-	std::unordered_map<std::string , int> &hamWords , 
-	std::unordered_map<std::string , int> &spamWords ,
+	string messageType , 
+	string message , 
+	unordered_map<string , int> &hamWords , 
+	unordered_map<string , int> &spamWords ,
 	int &hamWordCount , int &spamWordCount )
 {
 	//Variables
@@ -182,7 +184,7 @@ void findWord (
 				ASCII_QUEST = 63,
 				ASCII_BSLASH = 92;
 
-	std::string	word;
+	string	word;
 	const int 	check = 1;
 			
 	for ( int index = 0; index < message.size(); index++ )
@@ -217,11 +219,11 @@ void findWord (
 				}
 				else
 				{
-					std::cout << "Default...error///\n";
-					std::cout << "Message at error: " << message << "\n";
+					cout << "Default...error///\n";
+					cout << "Message at error: " << message << "\n";
 				}
 			
-				//std::cout << "Word: " << word << "\n";
+				//cout << "Word: " << word << "\n";
 				word.erase(word.begin(), word.end());
 			}
 		} 
@@ -239,11 +241,11 @@ void findWord (
  * 
 //////////////////////////////////////////////////////////////////////////////*/ 
 void insertIntoMap( 
-	std::string word , 
-	std::unordered_map<std::string , int> &insertMap )
+	string word , 
+	unordered_map<string , int> &insertMap )
 {
 	int value = 0;
-	std::unordered_map<std::string , int>::iterator it;
+	unordered_map<string , int>::iterator it;
 
 	//If the word already exists
 	if ( insertMap.count( word ) != 0 )
@@ -257,7 +259,7 @@ void insertIntoMap(
 	else //Otherwise set the value to 1 as its the first occurrence and insert
 	{
 		value = 1;
-		insertMap.insert( std::pair<std::string , int > ( word , value ));
+		insertMap.insert( pair<string , int > ( word , value ));
 	}
 }
 
@@ -271,25 +273,25 @@ void insertIntoMap(
  * 
 //////////////////////////////////////////////////////////////////////////////*/
 void outputProbabilityFile( 
-	std::string outputFile , 
-	std::unordered_map<std::string , int> outputMap ,
+	string outputFile , 
+	unordered_map<string , int> outputMap ,
 	int wordCount , int emailCount )
 {
 	//Variables
-	std::ofstream	fout;
+	ofstream	fout;
 
-	std::unordered_map<std::string , int>::iterator it;
+	unordered_map<string , int>::iterator it;
 
 	//Output information to file
-	fout.open( outputFile , std::ios::out );
+	fout.open( outputFile , ios::out );
 	if ( fout.is_open() )
 	{
-		fout << wordCount << std::endl;
-		fout << emailCount << std::endl;
+		fout << wordCount << endl;
+		fout << emailCount << endl;
 
 		//Now iterate over the map and output key value pairs
 		for ( it = outputMap.begin(); it != outputMap.end(); it++ )
-			fout << it->first << " " << it->second << std::endl;
+			fout << it->first << " " << it->second << endl;
 	}
 
 	fout.close();
