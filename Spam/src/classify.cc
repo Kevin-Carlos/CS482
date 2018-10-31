@@ -283,6 +283,8 @@ void naiveBayes( unordered_map< string , int > spamWords ,
             {
                 outputMessages( SPAM , outFile );
             }
+            else if ( log(msgSpamProb) == log(msgHamProb) )
+                outputMessages( HAM , outFile );
             else
                 outputMessages( messageType , outFile );
 
